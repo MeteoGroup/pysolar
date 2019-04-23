@@ -165,14 +165,29 @@ def get_azimuth_fast(latitude_deg, longitude_deg, when):
     declination_rad = math.radians(get_declination(day))
     latitude_rad = math.radians(latitude_deg)
     hour_angle_rad = math.radians(get_hour_angle(when, longitude_deg))
-    altitude_rad = math.radians(get_altitude_fast(latitude_deg, longitude_deg, when))
 
-    azimuth_rad = math.asin(-math.cos(declination_rad) * math.sin(hour_angle_rad) / math.cos(altitude_rad))
+    # Plane of the observer:
+    # x: north
+    # y: east
+    # z: zenith
+    #
+    #
+    # Spherical coordinates:
+    # a: altitude
+    # b: azimuth (0: north, 90: east, 180: south, 270: west)
+    #
+    # x = cos a * cos b
+    # y = cos a * sin b
+    # z = sin a
+    #
+    # -> b = atan2(y, x), more stable than b = asin(y / cos(a))
 
-    return math.where(math.cos(hour_angle_rad) * math.tan(latitude_rad) >= math.tan(declination_rad),
-                      (180 - math.degrees(azimuth_rad)),
-                      math.degrees(azimuth_rad) + 360 * (azimuth_rad < 0)
-                     )
+    x = -math.sin(latitude_rad) * math.cos(declination_rad) * math.cos(hour_angle_rad)\
+        + math.cos(latitude_rad) * math.sin(declination_rad)
+    y = -math.sin(hour_angle_rad) * math.cos(declination_rad)
+
+    return math.degrees(math.atan2(y, x)) % 360.0
+
 
 def get_coeff(jme, coeffs):
     "computes a polynomial with time-varying coefficients from the given constant" \
